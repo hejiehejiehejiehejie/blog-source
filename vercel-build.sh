@@ -12,12 +12,5 @@ pandoc -v
 echo "🔨 开始生成 Hexo 博客静态文件..."
 hexo g
 
-echo "🕵️ 开始检测 Algolia 环境变量..."
-if [ -z "$HEXO_ALGOLIA_INDEXING_KEY" ]; then
-  echo "❌ 完蛋，Vercel 还是没有把 HEXO_ALGOLIA_INDEXING_KEY 交给脚本！请检查 Vercel 设置。"
-else
-  echo "✅ 成功拿到 Algolia 密钥，准备起飞！"
-fi
-
 echo "🔍 开始自动向云端推送 Algolia 搜索索引..."
 hexo algolia
