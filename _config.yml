@@ -96,6 +96,7 @@ deploy:
 algolia:
   appId: "GSNQDTB1X4"
   apiKey: "d939242757679f32bfcfe96abd738a27"
+  adminApiKey: "VERCEL_ALGOLIA_KEY"
   chunkSize: 5000
   indexName: "my-hexo-blog"
   fields:
