@@ -8,6 +8,10 @@ Welcome to [Hexo](https://hexo.io/)! This is your very first post. Check [docume
 
 ### Create a new post
 
+$$
+A \times B
+$$
+
 ``` bash
 $ hexo new "My New Post"
 ```
