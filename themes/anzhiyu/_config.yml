@@ -134,17 +134,17 @@ favicon: /favicon.ico
 
 # Avatar (头像)
 avatar:
-  img: https://bu.dusays.com/2023/04/27/64496e511b09c.jpg
+  img: https://img.998244353.best/img/avatar.jpg
   effect: false
 
 # Disable all banner image
-disable_top_img: false
+disable_top_img: true
 
 # The banner image of home page
 index_img: false # "background: url() top / cover no-repeat"
 
 # If the banner of page not setting, it will show the top_img
-default_top_img: false
+default_top_img: 
 
 cover:
   # display the cover or not (是否显示文章封面)
@@ -230,9 +230,9 @@ post_copyright:
   location: 长沙
   license: CC BY-NC-SA 4.0
   license_url: https://creativecommons.org/licenses/by-nc-sa/4.0/
-  avatarSinks: false # hover时头像下沉
-  copyright_author_img_back:
-  copyright_author_img_front:
+  avatarSinks: true # hover时头像下沉
+  copyright_author_img_back: https://img.998244353.best/img/avatar.jpg
+  copyright_author_img_front: https://img.998244353.best/img/avatar.jpg
   copyright_author_link: /
 
 # Sponsor/reward
@@ -707,7 +707,7 @@ preloader:
   source: 3
   # pace theme (see https://codebyzach.github.io/pace/)
   pace_css_url:
-  avatar: https://npm.elemecdn.com/anzhiyu-blog-static@1.0.4/img/avatar.jpg # 自定加载动画义头像
+  avatar: https://img.998244353.best/img/avatar.jpg # 自定加载动画义头像
 
 # aside (侧边栏)
 # --------------------------------------
@@ -980,14 +980,14 @@ home_top:
       shadow: var(--anzhiyu-shadow-red)
       class: red
       icon: anzhiyu-icon-fire
-    - name: 算竞
+    - name: 
       path: /categories/生活日常/
       shadow: var(--anzhiyu-shadow-green)
       class: green
       icon: anzhiyu-icon-book
   default_descr: 再怎么看我也不知道怎么描述它的啦！
   swiper:
-    enable: false
+    enable: true
     swiper_css: https://npm.elemecdn.com/anzhiyu-theme-static@1.0.0/swiper/swiper.min.css #swiper css依赖
     swiper_js: https://npm.elemecdn.com/anzhiyu-theme-static@1.0.0/swiper/swiper.min.js #swiper js依赖
   banner:

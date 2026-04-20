@@ -1,4 +1,4 @@
-- class_name: 开启创造力
+- class_name: Creativity
   creativity_list:
     - name: Java
       color: "#fff"
