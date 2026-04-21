@@ -8,7 +8,7 @@ tags:
 在一个有向无环图中，只有一个起点，上面有一个棋子，两个玩家轮流沿着有向边推动棋子，不能走的玩家判负。
 
 <div style="text-align: right;"\>
-<a href="[https://oi-wiki.org/math/game-theory/impartial-game/](https://oi-wiki.org/math/game-theory/impartial-game/)" style="color: green;">
+<a href="[https://oi-wiki.org/math/game-theory/impartial-game/](https://oi-wiki.org/math/game-theory/impartial-game/)">
 By : OI Wiki
 </a>
 </div>
@@ -65,7 +65,7 @@ else cout << A << endl;
 
 -----
 
-### 例题 \>\>\> [POJ2311 Cutting Game](http://poj.org/problem?id=2311)
+#### 例题:  [POJ2311 Cutting Game](http://poj.org/problem?id=2311)
 
 参考：[G60 有向图游戏 SG函数【博弈论】董晓](https://www.bilibili.com/video/BV1eT411B7A8/?spm_id_from=333.337.search-card.all.click&vd_source=d87d1ea029a4c499e954e1ab0af3e59f)
 
@@ -83,9 +83,6 @@ $$S_i = sg[x][b] \oplus sg[a - x][b] \quad \text{或} \quad sg[a][y] \oplus sg[a
 所以本题中的必败态（也就是边界）设置为 $(2, 2)$、$(2, 3)$、$(3, 2)$、$(3, 3)$。
 因为这些状态一定能剪出必胜态。
 再递归地得到每个节点的 $SG$ 值。
-
-\<details\>
-\<summary\>\<span style="color: red; cursor: pointer;"\>点击查看代码\</span\>\</summary\>
 
 ```cpp
 #include <bits/stdc++.h>
@@ -132,8 +129,6 @@ int main()
     return 0;
 }
 ```
-
-\</details\>
 
 -----
 
