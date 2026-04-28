@@ -88,3 +88,43 @@ st表可以快速得到区间gcd。对于任意一个区间，由于区间中的
     * `[块B] 左边界:4 | 右边界:4 | GCD值: 40`
 
 </details>
+
+```cpp
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+
+int main()
+{
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n, q, x;
+    cin >> n;
+    vector<int> a(n);
+    map<int, ll> cnt;
+    for (auto &i : a) cin >> i;
+
+    vector<array<int, 3>> block, b;
+    for (int i = 0; i < n; i ++) {
+        block.push_back({i, i, a[i]});
+        for (auto& [l, r, val] : block) {
+            val = __gcd(a[i], val);
+            cnt[val] += r - l + 1;
+            if (b.empty() || b.back()[2] != val) b.push_back({l, r, val});
+            else b.back()[1] = r;
+        }
+        block = move(b);
+    }
+
+    cin >> q;
+    while (q --) {
+        cin >> x;
+        cout << cnt[x] << '\n';
+    }
+
+    return 0;
+}
+```
