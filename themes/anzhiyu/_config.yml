@@ -31,6 +31,8 @@ nav:
         - name: 博客
           link: https://998244353.best/
           icon: /img/favicon.ico
+    - title: 工具
+      item:
         - name: txt2epub
           link: https://998244353.best/txt2epub/
           icon: /img/favicon.ico
