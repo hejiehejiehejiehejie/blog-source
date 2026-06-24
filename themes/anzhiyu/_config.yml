@@ -31,10 +31,10 @@ nav:
         - name: 博客
           link: https://998244353.best/
           icon: /img/favicon.ico
-      item:
-        - name: txt2epub
-          link: https://998244353.best/txt2epub
-          icon: /img/favicon.ico
+      # item:
+      #   - name: txt2epub
+      #     link: https://998244353.best/txt2epub
+      #     icon: /img/favicon.ico
 
 # mourn （哀悼日，指定日期网站简单变灰，不包括滚动条）
 # 注意： 仅网站首页变灰，其他页面正常显示
