@@ -38,7 +38,7 @@
 <body>
 
 <div class="container">
-    <h1>TXT 转 EPUB</h1>
+    <h1>TXT 转 EPUB 典藏版</h1>
     
     <div class="form-group">
         <label>1. 章节拆分规则：</label>
@@ -175,7 +175,6 @@ function purifyText(text) {
     return cleanText;
 }
 
-// 核心升级：终极版精确识别引擎
 function parseChapters(text, ruleType, autoClean) {
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     text = text.replace(/([。！？\.”’\]）])\s*([【\[]*(正文\s*)?第[零一二三四五六七八九十百千两0-9\s]+[章卷回节折])/g, '$1\n$2');
@@ -198,32 +197,23 @@ function parseChapters(text, ruleType, autoClean) {
         
         let isTitle = false;
         
-        // 1. 垃圾广告绝对拦杀
         if (trimmedLine.includes('免费阅读') || trimmedLine.includes('最新章节') || trimmedLine.includes('笔趣阁')) {
             isTitle = false;
         } 
         else {
-            // 2. 匹配标题
             const match = trimmedLine.match(regex);
-            
             if (match && trimmedLine.length <= 35) {
                 isTitle = true;
-                
                 if (trimmedLine.endsWith('。') || trimmedLine.endsWith('.')) {
                     isTitle = false;
                 } else {
-                    // 【手术刀级修复核心】提取紧挨着“第X章”后面的字符串
                     const afterMatch = trimmedLine.substring(match[0].length);
-                    
-                    // 规则A：如果紧跟语气词、标点、所属词 (就算有空格也不行)
                     if (/^\s*[，,的了！!？\?]/.test(afterMatch)) {
                         isTitle = false;
                     }
-                    // 规则B：如果紧贴着(无空格)特定的动词/方位词 (如"第二章在晚上发布")
                     else if (/^(在|是|中|里|就|被|才|写|更新|发布)/.test(afterMatch)) {
                         isTitle = false;
                     }
-                    // 如果有空格，比如 ` 九道轮回，惊天一斩`，经过上面判断全都不命中，isTitle 保持为 true！
                 }
             }
         }
@@ -250,8 +240,13 @@ function parseChapters(text, ruleType, autoClean) {
     return chapters;
 }
 
+// 【核心修改 1】彻底切除原文本自带的空格杂质，不硬塞物理空格
 function formatParagraphs(contentArray) {
-    return contentArray.map(line => '\x3Cp\x3E  ' + line + '\x3C/p\x3E').join('\n');
+    return contentArray.map(line => {
+        // 使用正则干掉每行开头的各种半角、全角空格和Tab键，让段落保持极度纯净
+        const cleanLine = line.replace(/^[\s\u3000]+/, '');
+        return '\x3Cp\x3E' + cleanLine + '\x3C/p\x3E';
+    }).join('\n');
 }
 
 async function generateEPUB(chapters, title, author) {
@@ -261,11 +256,14 @@ async function generateEPUB(chapters, title, author) {
     const oebps = zip.folder("OEBPS");
     
     let manifestItems = '', spineItems = '', navPoints = '';
+    
+    // 【核心修改 2】引入了专业的 CSS 排版代码：text-indent: 2em;
+    const epubCSS = 'h2{text-align:center;margin-bottom:2em;} p{line-height:1.8em;font-size:1em;text-indent:2em;margin-top:0;margin-bottom:0.6em;}';
 
     chapters.forEach((chapter, index) => {
         const chapterId = 'chapter_' + (index + 1);
         const fileName = chapterId + '.html';
-        oebps.file(fileName, '\x3C?xml version="1.0" encoding="utf-8"?\x3E\n\x3C!DOCTYPE html\x3E\n\x3Chtml xmlns="http://www.w3.org/1999/xhtml"\x3E\n\x3Chead\x3E\x3Ctitle\x3E' + chapter.title + '\x3C/title\x3E\x3Cstyle\x3Eh2{text-align:center;margin-bottom:2em;}p{line-height:1.6em;font-size:1em;}\x3C/style\x3E\x3C/head\x3E\n\x3Cbody\x3E\x3Ch2\x3E' + chapter.title + '\x3C/h2\x3E\n' + chapter.content + '\x3C/body\x3E\n\x3C/html\x3E');
+        oebps.file(fileName, '\x3C?xml version="1.0" encoding="utf-8"?\x3E\n\x3C!DOCTYPE html\x3E\n\x3Chtml xmlns="http://www.w3.org/1999/xhtml"\x3E\n\x3Chead\x3E\x3Ctitle\x3E' + chapter.title + '\x3C/title\x3E\x3Cstyle\x3E' + epubCSS + '\x3C/style\x3E\x3C/head\x3E\n\x3Cbody\x3E\x3Ch2\x3E' + chapter.title + '\x3C/h2\x3E\n' + chapter.content + '\x3C/body\x3E\n\x3C/html\x3E');
         manifestItems += '\x3Citem id="' + chapterId + '" href="' + fileName + '" media-type="application/xhtml+xml"/\x3E\n    ';
         spineItems += '\x3Citemref idref="' + chapterId + '"/\x3E\n    ';
         navPoints += '\n    \x3CnavPoint id="navPoint-' + (index + 1) + '" playOrder="' + (index + 1) + '"\x3E\n      \x3CnavLabel\x3E\x3Ctext\x3E' + chapter.title + '\x3C/text\x3E\x3C/navLabel\x3E\n      \x3Ccontent src="' + fileName + '"/\x3E\n    \x3C/navPoint\x3E';
