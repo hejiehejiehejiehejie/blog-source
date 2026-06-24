@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TXT转EPUB (全量预览防误杀版)</title>
+    
+    <script>
+        function handleNetworkError() {
+            const statusDiv = document.getElementById('status');
+            if(statusDiv) { statusDiv.innerHTML = '❌ 工具包加载失败！请检查网络。'; statusDiv.style.color = 'red'; }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" onerror="handleNetworkError()"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js" onerror="handleNetworkError()"></script>
+    
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: #f5f7fa; color: #333; display: flex; justify-content: center; padding: 20px; margin: 0; min-height: 100vh; box-sizing: border-box;}
+        .container { background: #fff; padding: 30px 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 600px; height: fit-content; }
+        h1 { font-size: 24px; text-align: center; margin-bottom: 24px; color: #2c3e50; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 14px; }
+        input[type="text"], input[type="file"], select { width: 100%; padding: 10px; border: 1px solid #dcdfe6; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        input[type="text"]:focus, select:focus { outline: none; border-color: #409eff; }
+        button { width: 100%; padding: 12px; background-color: #409eff; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; margin-top: 10px; }
+        button:hover { background-color: #66b1ff; }
+        button:disabled { background-color: #a0cfff; cursor: not-allowed; }
+        #status { margin-top: 16px; font-size: 14px; text-align: center; font-weight: bold; min-height: 20px; }
+        .checkbox-group { display: flex; align-items: center; font-size: 14px; color: #e6a23c; margin-bottom: 15px;}
+        .checkbox-group input { width: auto; margin-right: 8px; }
+        
+        #previewPanel { margin-top: 20px; border: 1px solid #ebeef5; padding: 15px; border-radius: 8px; display: none; background: #fafafa; }
+        #chapterList { max-height: 400px; overflow-y: auto; font-size: 13px; color: #606266; border-top: 1px solid #ebeef5; margin-top: 10px; padding-top: 10px; line-height: 1.8; }
+        #downloadBtn { background-color: #67c23a; margin-top: 15px; }
+        #downloadBtn:hover { background-color: #85ce61; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>TXT 转 EPUB 典藏版</h1>
+    
+    <div class="form-group">
+        <label>1. 章节拆分规则：</label>
+        <select id="chapterRule">
+            <option value="standard" selected>智能标准：兼容带空格/正文前缀的 第X章</option>
+            <option value="strict">严格模式：必须严格以“第X章”开头</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>2. 文件编码：</label>
+        <select id="txtEncoding">
+            <option value="GB18030" selected>GBK/GB2312 (国内小说最常用)</option>
+            <option value="UTF-8">UTF-8</option>
+        </select>
+    </div>
+
+    <div class="form-group"><label>书名：</label><input type="text" id="bookTitle" value="择日飞升"></div>
+    <div class="form-group"><label>选择 TXT 文件：</label><input type="file" id="txtFile" accept=".txt"></div>
+    
+    <div class="checkbox-group">
+        <input type="checkbox" id="autoClean" checked>
+        <label for="autoClean" style="margin:0; cursor:pointer;">开启全能净化 (杀广告、吞假目录、防语法误判)</label>
+    </div>
+
+    <button id="previewBtn">1. 扫描并全量预览章节目录</button>
+    <div id="status">准备就绪...</div>
+
+    <div id="previewPanel">
+        <div id="chapterCount" style="font-weight:bold; color:#409eff; font-size: 15px;"></div>
+        <div id="chapterList"></div>
+        <button id="downloadBtn">2. 确认目录无误，一键生成 EPUB</button>
+    </div>
+</div>
+
+<script>
+//<![CDATA[
+let globalChapters = [];
+
+document.getElementById('previewBtn').addEventListener('click', function() {
+    if (typeof JSZip === 'undefined') { alert('工具包未加载，请检查网络！'); return; }
+    
+    const fileInput = document.getElementById('txtFile');
+    const selectedEncoding = document.getElementById('txtEncoding').value;
+    const ruleType = document.getElementById('chapterRule').value;
+    const autoClean = document.getElementById('autoClean').checked;
+    const statusDiv = document.getElementById('status');
+    const previewBtn = document.getElementById('previewBtn');
+
+    if (fileInput.files.length === 0) { alert('请先选择一个 TXT 文件！'); return; }
+
+    previewBtn.disabled = true;
+    statusDiv.textContent = '正在极速读取文件...';
+    statusDiv.style.color = '#e6a23c';
+    document.getElementById('previewPanel').style.display = 'none';
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        let textContent = e.target.result;
+        statusDiv.textContent = '读取完毕，正在进行 AI 级扫描净化...';
+        
+        setTimeout(() => {
+            try {
+                if (autoClean) { textContent = purifyText(textContent); }
+                
+                globalChapters = parseChapters(textContent, ruleType, autoClean);
+                
+                if(globalChapters.length < 3) {
+                    statusDiv.innerHTML = '⚠️ 警告：只识别出了 ' + globalChapters.length + ' 章！请尝试更换拆分规则或编码。';
+                    statusDiv.style.color = '#f56c6c';
+                } else {
+                    statusDiv.textContent = '✅ 扫描完成！请在下方核对目录。';
+                    statusDiv.style.color = '#67c23a';
+                }
+
+                document.getElementById('previewPanel').style.display = 'block';
+                document.getElementById('chapterCount').textContent = `成功提取出 ${globalChapters.length} 个纯净章节：`;
+                
+                const listDiv = document.getElementById('chapterList');
+                listDiv.innerHTML = globalChapters.map((c, i) => `<b>[${i+1}]</b> ${c.title}`).join('<br>');
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.textContent = '❌ 处理失败，请检查控制台。';
+                statusDiv.style.color = '#f56c6c';
+            } finally {
+                previewBtn.disabled = false;
+            }
+        }, 100); 
+    };
+    reader.readAsText(fileInput.files[0], selectedEncoding);
+});
+
+document.getElementById('downloadBtn').addEventListener('click', async function() {
+    const title = document.getElementById('bookTitle').value.trim() || '未知书籍';
+    const statusDiv = document.getElementById('status');
+    const downloadBtn = document.getElementById('downloadBtn');
+    
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = '正在打包生成中，请稍候...';
+    
+    setTimeout(async () => {
+        try {
+            await generateEPUB(globalChapters, title, "佚名");
+            statusDiv.textContent = '🎉 下载已触发！恭喜获得完美排版电子书。';
+            downloadBtn.textContent = '2. 确认目录无误，一键生成 EPUB';
+        } catch (error) {
+            alert("打包失败！");
+        } finally {
+            downloadBtn.disabled = false;
+        }
+    }, 50);
+});
+
+function purifyText(text) {
+    text = text.replace(/([a-zA-Z0-9-]+\.[a-zA-Z0-9-]+\.(com|net|org|cn|cc|me|info)(\/[^\s]*)?)/g, '');
+    text = text.replace(/(http|https):\/\/[^\s]+/g, '');
+    
+    const adKeywords = [
+        "请记住本书首发域名", "最新网址", "无弹窗广告", "看最新章节", 
+        "手机版阅读网址", "更新最快", "顶点小说", "笔趣阁", "求推荐票", 
+        "求月票", "打赏", "投推荐票", "投月票", "加入书签", "返回目录",
+        "免费阅读", "全网首发" 
+    ];
+    
+    let lines = text.split('\n');
+    const cleanLines = lines.filter(line => {
+        if (/《.*》(最新章节|正文)/.test(line)) return false;
+        return !adKeywords.some(keyword => line.includes(keyword));
+    });
+    
+    let cleanText = cleanLines.join('\n');
+    cleanText = cleanText.replace(/[■◆★▲▼●\ufffd]+/g, '');
+    return cleanText;
+}
+
+// 核心升级：终极版精确识别引擎
+function parseChapters(text, ruleType, autoClean) {
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    text = text.replace(/([。！？\.”’\]）])\s*([【\[]*(正文\s*)?第[零一二三四五六七八九十百千两0-9\s]+[章卷回节折])/g, '$1\n$2');
+
+    const lines = text.split('\n');
+    const chapters = [];
+    let currentTitle = '前言';
+    let currentContent = [];
+    
+    function getRegex(type) {
+        if(type === 'strict') return /^(第[零一二三四五六七八九十百千两0-9]+[章卷回节折])/;
+        return /^[\s【\[]*(正文\s*)?(第[零一二三四五六七八九十百千两0-9\s]+[章卷回节折])/;
+    }
+    const regex = getRegex(ruleType);
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmedLine = line.trim();
+        if (trimmedLine.length === 0) continue; 
+        
+        let isTitle = false;
+        
+        // 1. 垃圾广告绝对拦杀
+        if (trimmedLine.includes('免费阅读') || trimmedLine.includes('最新章节') || trimmedLine.includes('笔趣阁')) {
+            isTitle = false;
+        } 
+        else {
+            // 2. 匹配标题
+            const match = trimmedLine.match(regex);
+            
+            if (match && trimmedLine.length <= 35) {
+                isTitle = true;
+                
+                if (trimmedLine.endsWith('。') || trimmedLine.endsWith('.')) {
+                    isTitle = false;
+                } else {
+                    // 【手术刀级修复核心】提取紧挨着“第X章”后面的字符串
+                    const afterMatch = trimmedLine.substring(match[0].length);
+                    
+                    // 规则A：如果紧跟语气词、标点、所属词 (就算有空格也不行)
+                    if (/^\s*[，,的了！!？\?]/.test(afterMatch)) {
+                        isTitle = false;
+                    }
+                    // 规则B：如果紧贴着(无空格)特定的动词/方位词 (如"第二章在晚上发布")
+                    else if (/^(在|是|中|里|就|被|才|写|更新|发布)/.test(afterMatch)) {
+                        isTitle = false;
+                    }
+                    // 如果有空格，比如 ` 九道轮回，惊天一斩`，经过上面判断全都不命中，isTitle 保持为 true！
+                }
+            }
+        }
+        
+        if (isTitle) {
+            let contentTextLength = currentContent.join('').length;
+            
+            if (autoClean && currentTitle !== '前言' && contentTextLength < 50) {
+                currentTitle = trimmedLine.replace(/^[【\[]+|[】\]]+$/g, '');
+                currentContent = [];
+            } else {
+                if (currentContent.length > 0 || currentTitle !== '前言') {
+                    chapters.push({ title: currentTitle, content: formatParagraphs(currentContent) });
+                }
+                currentTitle = trimmedLine.replace(/^[【\[]+|[】\]]+$/g, '');
+                currentContent = [];
+            }
+        } else {
+            currentContent.push(trimmedLine);
+        }
+    }
+    
+    if (currentContent.length > 0) chapters.push({ title: currentTitle, content: formatParagraphs(currentContent) });
+    return chapters;
+}
+
+function formatParagraphs(contentArray) {
+    return contentArray.map(line => '\x3Cp\x3E  ' + line + '\x3C/p\x3E').join('\n');
+}
+
+async function generateEPUB(chapters, title, author) {
+    const zip = new JSZip();
+    zip.file("mimetype", "application/epub+zip");
+    zip.folder("META-INF").file("container.xml", '\x3C?xml version="1.0"?\x3E\n\x3Ccontainer version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"\x3E\n  \x3Crootfiles\x3E\n    \x3Crootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/\x3E\n  \x3C/rootfiles\x3E\n\x3C/container\x3E');
+    const oebps = zip.folder("OEBPS");
+    
+    let manifestItems = '', spineItems = '', navPoints = '';
+
+    chapters.forEach((chapter, index) => {
+        const chapterId = 'chapter_' + (index + 1);
+        const fileName = chapterId + '.html';
+        oebps.file(fileName, '\x3C?xml version="1.0" encoding="utf-8"?\x3E\n\x3C!DOCTYPE html\x3E\n\x3Chtml xmlns="http://www.w3.org/1999/xhtml"\x3E\n\x3Chead\x3E\x3Ctitle\x3E' + chapter.title + '\x3C/title\x3E\x3Cstyle\x3Eh2{text-align:center;margin-bottom:2em;}p{line-height:1.6em;font-size:1em;}\x3C/style\x3E\x3C/head\x3E\n\x3Cbody\x3E\x3Ch2\x3E' + chapter.title + '\x3C/h2\x3E\n' + chapter.content + '\x3C/body\x3E\n\x3C/html\x3E');
+        manifestItems += '\x3Citem id="' + chapterId + '" href="' + fileName + '" media-type="application/xhtml+xml"/\x3E\n    ';
+        spineItems += '\x3Citemref idref="' + chapterId + '"/\x3E\n    ';
+        navPoints += '\n    \x3CnavPoint id="navPoint-' + (index + 1) + '" playOrder="' + (index + 1) + '"\x3E\n      \x3CnavLabel\x3E\x3Ctext\x3E' + chapter.title + '\x3C/text\x3E\x3C/navLabel\x3E\n      \x3Ccontent src="' + fileName + '"/\x3E\n    \x3C/navPoint\x3E';
+    });
+
+    oebps.file("content.opf", '\x3C?xml version="1.0" encoding="utf-8"?\x3E\n\x3Cpackage xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId" version="2.0"\x3E\n  \x3Cmetadata xmlns:dc="http://purl.org/dc/elements/1.1/"\x3E\n    \x3Cdc:title\x3E' + title + '\x3C/dc:title\x3E\n    \x3Cdc:creator\x3E' + author + '\x3C/dc:creator\x3E\n    \x3Cdc:language\x3Ezh-CN\x3C/dc:language\x3E\n    \x3Cdc:identifier id="BookId"\x3Eurn:uuid:123456\x3C/dc:identifier\x3E\n  \x3C/metadata\x3E\n  \x3Cmanifest\x3E\n    \x3Citem id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/\x3E\n    ' + manifestItems + '\n  \x3C/manifest\x3E\n  \x3Cspine toc="ncx"\x3E\n    ' + spineItems + '\n  \x3C/spine\x3E\n\x3C/package\x3E');
+    oebps.file("toc.ncx", '\x3C?xml version="1.0" encoding="utf-8"?\x3E\n\x3Cncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"\x3E\n  \x3Chead\x3E\x3Cmeta name="dtb:uid" content="urn:uuid:123456"/\x3E\x3Cmeta name="dtb:depth" content="1"/\x3E\x3Cmeta name="dtb:totalPageCount" content="0"/\x3E\x3Cmeta name="dtb:maxPageNumber" content="0"/\x3E\x3C/head\x3E\n  \x3CdocTitle\x3E\x3Ctext\x3E' + title + '\x3C/text\x3E\x3C/docTitle\x3E\n  \x3CnavMap\x3E' + navPoints + '\n  \x3C/navMap\x3E\n\x3C/ncx\x3E');
+
+    const content = await zip.generateAsync({ type: "blob", mimeType: "application/epub+zip" });
+    saveAs(content, title + '.epub');
+}
+//]]>
+</script>
+</body>
+</html>
