@@ -52,7 +52,7 @@
         <label>2. 文件编码：</label>
         <select id="txtEncoding">
             <option value="GB18030" selected>GBK/GB2312 (国内小说最常用)</option>
-            <option value="UTF-8">UTF-8</option>
+            <option value="UTF-8">UTF-8 (测试文件建议选此项)</option>
         </select>
     </div>
 
@@ -110,7 +110,7 @@ document.getElementById('previewBtn').addEventListener('click', function() {
                     statusDiv.innerHTML = '⚠️ 警告：只识别出了 ' + globalChapters.length + ' 章！请尝试更换拆分规则或编码。';
                     statusDiv.style.color = '#f56c6c';
                 } else {
-                    statusDiv.textContent = '✅ 扫描完成！请在下方核对目录。';
+                    statusDiv.textContent = '✅ 扫描完成！请在下方核提示目录。';
                     statusDiv.style.color = '#67c23a';
                 }
 
@@ -176,8 +176,11 @@ function purifyText(text) {
 }
 
 function parseChapters(text, ruleType, autoClean) {
+    // 【修复 1】：清理 Windows 记事本自带的 BOM 幽灵字符，防止第一章无法识别
+    text = text.replace(/^\uFEFF/, '');
+    
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    text = text.replace(/([。！？\.”’\]）])\s*([【\[]*(正文\s*)?第[零一二三四五六七八九十百千两0-9\s]+[章卷回节折])/g, '$1\n$2');
+    text = text.replace(/([。！？\.”’\]）])\s*([【\[]*(正文\s*)?第[零一二三四五六七八九十百千两壹贰叁肆伍陆柒捌玖拾佰仟万0-9０-９\s]+[章卷回节折])/g, '$1\n$2');
 
     const lines = text.split('\n');
     const chapters = [];
@@ -185,8 +188,9 @@ function parseChapters(text, ruleType, autoClean) {
     let currentContent = [];
     
     function getRegex(type) {
-        if(type === 'strict') return /^(第[零一二三四五六七八九十百千两0-9]+[章卷回节折])/;
-        return /^[\s【\[]*(正文\s*)?(第[零一二三四五六七八九十百千两0-9\s]+[章卷回节折])/;
+        // 【修复 2】：增加了全角数字和大写数字支持
+        if(type === 'strict') return /^(第[零一二三四五六七八九十百千两壹贰叁肆伍陆柒捌玖拾佰仟万0-9０-９\s]+[章卷回节折])/;
+        return /^[\s【\[]*(正文\s*)?(第[零一二三四五六七八九十百千两壹贰叁肆伍陆柒捌玖拾佰仟万0-9０-９\s]+[章卷回节折])/;
     }
     const regex = getRegex(ruleType);
     
@@ -221,7 +225,8 @@ function parseChapters(text, ruleType, autoClean) {
         if (isTitle) {
             let contentTextLength = currentContent.join('').length;
             
-            if (autoClean && currentTitle !== '前言' && contentTextLength < 50) {
+            // 【修复 3】：将判断假目录的字数门槛从 50字 降低到 5字，防止误杀测试短文
+            if (autoClean && currentTitle !== '前言' && contentTextLength < 5) {
                 currentTitle = trimmedLine.replace(/^[【\[]+|[】\]]+$/g, '');
                 currentContent = [];
             } else {
@@ -240,10 +245,8 @@ function parseChapters(text, ruleType, autoClean) {
     return chapters;
 }
 
-// 【核心修改 1】彻底切除原文本自带的空格杂质，不硬塞物理空格
 function formatParagraphs(contentArray) {
     return contentArray.map(line => {
-        // 使用正则干掉每行开头的各种半角、全角空格和Tab键，让段落保持极度纯净
         const cleanLine = line.replace(/^[\s\u3000]+/, '');
         return '\x3Cp\x3E' + cleanLine + '\x3C/p\x3E';
     }).join('\n');
@@ -257,7 +260,6 @@ async function generateEPUB(chapters, title, author) {
     
     let manifestItems = '', spineItems = '', navPoints = '';
     
-    // 【核心修改 2】引入了专业的 CSS 排版代码：text-indent: 2em;
     const epubCSS = 'h2{text-align:center;margin-bottom:2em;} p{line-height:1.8em;font-size:1em;text-indent:2em;margin-top:0;margin-bottom:0.6em;}';
 
     chapters.forEach((chapter, index) => {
