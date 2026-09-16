@@ -976,17 +976,17 @@ home_top:
   siteText: 998244353.best
   category:
     - name: 算法
-      path: /categories/前端开发/
+      path: /categories/算法/
       shadow: var(--anzhiyu-shadow-blue)
       class: blue
       icon: anzhiyu-icon-dove
-    - name: 竞赛
-      path: /categories/大学生涯/
+    - name: 数学
+      path: /categories/数学/
       shadow: var(--anzhiyu-shadow-red)
       class: red
       icon: anzhiyu-icon-fire
-    - name: 
-      path: /categories/生活日常/
+    - name: 数据结构
+      path: /categories/数据结构/
       shadow: var(--anzhiyu-shadow-green)
       class: green
       icon: anzhiyu-icon-book

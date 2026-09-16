@@ -1,6 +1,8 @@
 ---
 title: 有向图游戏与sg函数
 date: 2026-04-21 11:48:55
+categories:
+    - 算法
 tags:
     - 博弈论
 cover: 

@@ -1,6 +1,8 @@
 ---
 title: 区间GCD分块
 date: 2026-04-28 15:48:09
+categories:
+    - 数据结构
 tags:
     - 数学
     - 数据结构
