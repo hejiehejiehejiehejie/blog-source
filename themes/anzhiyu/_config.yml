@@ -69,7 +69,7 @@ social:
   # 至少填一条。留空会让作者卡片底部的整行（含作者名）一起消失
   Github: https://github.com/hejiehejiehejiehejie || anzhiyu-icon-github
   # BiliBili: https://space.bilibili.com/你的UID || anzhiyu-icon-bilibili
-  # 邮箱: mailto:你的邮箱 || anzhiyu-icon-mail
+  # 邮箱: mailto:你的邮箱 || anzhiyu-icon-envelope
 
 # 作者卡片 状态
 author_status:
